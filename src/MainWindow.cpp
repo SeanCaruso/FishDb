@@ -456,7 +456,7 @@ void MainWindow::handleTableRightClick(const QPoint& pos)
     QModelIndex index = m_table->indexAt(pos);
 
     // If the item has an ID, we're modifying a known bait or fish.
-    if (index.data(CatchTableModel::IdRole) != CatchTableModel::g_invalidId)
+    if (index.data(CatchTableModel::IdRole).isValid())
     {
         QMenu menu(this);
         QAction* setLevelAction = new QAction("Set &Level");
@@ -508,7 +508,7 @@ void MainWindow::setSpot(QString spotId, bool forceReset)
     int numCols = m_tableModel->columnCount();
     // Enable the button to remove a column if the last column has an unknown fish.
     QModelIndex lastFishIdx = m_tableModel->index(0, numCols - 1);
-    m_removeFishCol->setEnabled(lastFishIdx.data(CatchTableModel::IdRole) == CatchTableModel::g_invalidId);
+    m_removeFishCol->setEnabled(!lastFishIdx.data(CatchTableModel::IdRole).isValid());
 
     // Enable the button to add a column if we have less than 15 fish.
     m_addFishCol->setEnabled(numCols < 16);

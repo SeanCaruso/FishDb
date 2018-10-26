@@ -6,8 +6,6 @@
 
 #include "CatchTableModel.h"
 
-const QVariant CatchTableModel::g_invalidId(-1);
-
 CatchTableModel::CatchTableModel(QObject* parent)
     : QStandardItemModel(parent)
     , m_currentSpotId("")
@@ -59,7 +57,6 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
     {
         // Default to an unknown fish.
         QStandardItem* fishItem = new QStandardItem("???");
-        fishItem->setData(g_invalidId, IdRole);
         fishItem->setData(999, LevelRole);
         fishItem->setTextAlignment(Qt::AlignCenter);
 
@@ -105,7 +102,7 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
             catchItem->setEditable(false);
 
             // If there's a known fish for this column, set the item to be editable and update the catch count.
-            if (fishItemList.at(i)->data(IdRole) != g_invalidId)
+            if (fishItemList.at(i)->data(IdRole).isValid())
             {
                 catchItem->setEditable(true);
 
@@ -156,7 +153,7 @@ bool CatchTableModel::addOrSubtractCatch(const QModelIndex& index, bool add)
 
     // Also do nothing if this column is for an unknown fish.
     QModelIndex fishIdx = index.sibling(0, index.column());
-    if (fishIdx.data(IdRole) == g_invalidId)
+    if (!fishIdx.data(IdRole).isValid())
     {
         return false;
     }
@@ -187,7 +184,7 @@ void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
     QSqlQuery query(FishDb::db());
 
     // Add the bait if it doesn't exist yet.
-    if (index.data(IdRole) == g_invalidId)
+    if (!index.data(IdRole).isValid())
     {
         lvl = 1;
         changedItem->setData(1, LevelRole);
@@ -202,7 +199,7 @@ void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
         for (int col = 1; col <= m_numFish; ++col)
         {
             QStandardItem* fishItem = item(0, col);
-            if (fishItem->data(IdRole) == g_invalidId)
+            if (!fishItem->data(IdRole).isValid())
             {
                 item(changedItem->row(), col)->setText("-");
             }
@@ -266,7 +263,6 @@ void CatchTableModel::appendBaitRow()
     itemFont.setItalic(true);
     addBaitItem->setFont(itemFont);
     addBaitItem->setForeground(QColor(150, 150, 150));
-    addBaitItem->setData(g_invalidId, IdRole);
     addBaitItem->setData(999, LevelRole); // Trick for sorting to keep this on the bottom.
 
     QList<QStandardItem*> items{addBaitItem};

@@ -9,8 +9,6 @@ class CatchTableModel : public QStandardItemModel
 
 public:
 
-    static const QVariant g_invalidId;
-
     enum Roles
     {
         CatchRole = Qt::DisplayRole,
