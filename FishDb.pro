@@ -25,23 +25,23 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-        main.cpp \
-        MainWindow.cpp \
-    FishDb.cpp \
-    FishDbTreeModel.cpp \
-    FishDbTreeDelegate.cpp \
-    CatchTableModel.cpp \
-    CatchTableDelegate.cpp \
-    CatchTableView.cpp
+    src/CatchTableDelegate.cpp \
+    src/CatchTableModel.cpp \
+    src/CatchTableView.cpp \
+    src/FishDb.cpp \
+    src/FishDbTreeDelegate.cpp \
+    src/FishDbTreeModel.cpp \
+    src/main.cpp \
+    src/MainWindow.cpp
 
 HEADERS += \
-        MainWindow.h \
-    FishDb.h \
-    FishDbTreeModel.h \
-    FishDbTreeDelegate.h \
-    CatchTableModel.h \
-    CatchTableDelegate.h \
-    CatchTableView.h
+    src/CatchTableDelegate.h \
+    src/CatchTableModel.h \
+    src/CatchTableView.h \
+    src/FishDb.h \
+    src/FishDbTreeDelegate.h \
+    src/FishDbTreeModel.h \
+    src/MainWindow.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
