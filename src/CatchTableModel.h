@@ -11,11 +11,10 @@ public:
 
     enum Roles
     {
-        CatchRole = Qt::DisplayRole,
-
         IdRole = Qt::UserRole + 1,
         NameRole,
-        LevelRole
+        LevelRole,
+        CatchRole
     };
 
     CatchTableModel(QObject* parent = nullptr);
@@ -33,10 +32,8 @@ public slots:
     void handleBaitNameChanged(const QModelIndex& index);
     void handleFishNameChanged(const QModelIndex& index);
 
-protected slots:
-    //void handleDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles);
-
 protected:
+    void updateCatches(int row);
     void appendBaitRow();
 
 private:

@@ -100,21 +100,11 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
             QStandardItem* catchItem = new QStandardItem("-");
             catchItem->setTextAlignment(Qt::AlignCenter);
             catchItem->setEditable(false);
-
-            // If there's a known fish for this column, set the item to be editable and update the catch count.
-            if (fishItemList.at(i)->data(IdRole).isValid())
-            {
-                catchItem->setEditable(true);
-
-                catchQuery.exec("SELECT count FROM catches WHERE spot_id = " + spotId + " AND bait_id = " +
-                    baitId + " AND fish_id = " + fishItemList.at(i)->data(IdRole).toString());
-
-                catchItem->setText(catchQuery.next() ? catchQuery.value(0).toString() : "0");
-            }
             baitItems.append(catchItem);
         }
 
         appendRow(baitItems);
+        updateCatches(rowCount() - 1);
     }
 
     // Add a row to add a new bait.
@@ -168,6 +158,8 @@ bool CatchTableModel::addOrSubtractCatch(const QModelIndex& index, bool add)
     query.exec("REPLACE INTO catches (spot_id, bait_id, fish_id, count) VALUES (" +
         m_currentSpotId + ", " + baitId + ", " + fishId + ", " + index.data(CatchRole).toString() + ")");
 
+    updateCatches(index.row());
+
     return true;
 }
 
@@ -219,7 +211,6 @@ void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
     }
 
     changedItem->setText(name + " (Lv. " + QString::number(lvl) + ")");
-    //changedItem->setEditable(false);
 }
 
 void CatchTableModel::handleFishNameChanged(const QModelIndex& index)
@@ -253,6 +244,36 @@ void CatchTableModel::handleFishNameChanged(const QModelIndex& index)
 
     changedItem->setText(name + " (Lv. " + QString::number(lvl) + ")");
     changedItem->setEditable(false);
+}
+
+void CatchTableModel::updateCatches(int row)
+{
+    QString baitId = index(row, 0).data(IdRole).toString();
+    QSqlQuery query(FishDb::db());
+    query.exec("SELECT SUM(count) FROM catches WHERE "
+        "bait_id = " + baitId + " AND spot_id = " + m_currentSpotId);
+    query.next();
+    int totalCatches = query.value(0).toInt();
+
+    for (int i = 1; i < columnCount(); ++i)
+    {
+        QVariant fishIdVar = index(0, i).data(IdRole);
+        if (fishIdVar.isValid())
+        {
+            QString fishId = fishIdVar.toString();
+            query.exec("SELECT count FROM catches WHERE "
+                "bait_id = " + baitId + " AND fish_id = " + fishId + " AND spot_id = " + m_currentSpotId);
+            query.next();
+            int catches = query.value(0).toInt();
+            QString text = QString::number(catches);
+            if (catches > 0 && totalCatches > 0)
+            {
+                int percent = std::round(float(catches * 100) / float(totalCatches));
+                text += (" (" + QString::number(percent) + "%)");
+            }
+            item(row, i)->setText(text);
+        }
+    }
 }
 
 void CatchTableModel::appendBaitRow()
