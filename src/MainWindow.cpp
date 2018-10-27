@@ -26,7 +26,6 @@
 #include "MainWindow.h"
 
 // ISSUES TO LOOK AT:
-// - (Low Priority) - Allow fish name editing (maybe via right-click?)
 // - (Low Priority) - Fish browser dialog that allows removing of unused (i.e. mistake) fish
 
 // FISH LOGS (10-25 db up to date):
@@ -89,7 +88,6 @@ MainWindow::MainWindow(QWidget* parent)
     m_tree->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
     mainLayout->addWidget(m_tree, 1, 1);
 
-    connect(m_tree->model(), &QAbstractItemModel::dataChanged, this, &MainWindow::handleTreeDataChanged);
     connect(m_tree->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::handleTreeSelectionChanged);
     connect(m_treeModel, &FishDbTreeModel::spotChanged, this, &MainWindow::handleTreeSelectionChanged);
 
@@ -113,7 +111,6 @@ MainWindow::MainWindow(QWidget* parent)
     mainLayout->addWidget(m_table, 1, 2);
 
     connect(m_table->model(), &QAbstractItemModel::dataChanged, this, &MainWindow::handleTableDataChanged);
-    //connect(m_table->horizontalHeader(), &QHeaderView::sectionResized, m_table, &CatchTableView::resizeRowToContents);
 
     connect(tableDelegate, &CatchTableDelegate::baitNameChanged, m_tableModel, &CatchTableModel::handleBaitNameChanged);
     connect(tableDelegate, &CatchTableDelegate::fishNameChanged, m_tableModel, &CatchTableModel::handleFishNameChanged);
@@ -217,7 +214,6 @@ void MainWindow::handleNew()
 void MainWindow::handleAddRegion()
 {
     QModelIndex idx = m_treeModel->addRegion();
-    //m_tree->header()->resizeSections(QHeaderView::ResizeToContents);
     m_tree->selectionModel()->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect);
 }
 
@@ -232,7 +228,6 @@ void MainWindow::handleAddZone()
 
     QModelIndex zoneIdx = m_treeModel->addZone(regionIdx);
     m_tree->expand(regionIdx);
-    //m_tree->header()->resizeSections(QHeaderView::ResizeToContents);
     m_tree->selectionModel()->setCurrentIndex(zoneIdx, QItemSelectionModel::ClearAndSelect);
 }
 
@@ -247,7 +242,6 @@ void MainWindow::handleAddSpot()
 
     QModelIndex spotIdx = m_treeModel->addSpot(zoneIdx);
     m_tree->expand(zoneIdx);
-    //m_tree->header()->resizeSections(QHeaderView::ResizeToContents);
     m_tree->selectionModel()->setCurrentIndex(spotIdx, QItemSelectionModel::ClearAndSelect);
 }
 
@@ -276,11 +270,6 @@ void MainWindow::handleTreeColumnResize()
     int width = m_tree->header()->length();
     width += style()->pixelMetric(QStyle::PM_ScrollBarExtent);
     m_tree->setMinimumWidth(width + 2);
-}
-
-void MainWindow::handleTreeDataChanged()
-{
-    //m_tree->header()->resizeSections(QHeaderView::ResizeToContents);
 }
 
 void MainWindow::handleTreeSelectionChanged()
@@ -389,10 +378,7 @@ void MainWindow::handleTreeRightClick(const QPoint& pos)
 
     if (selected == numFishAction)
     {
-        QSqlQuery query(FishDb::db());
-        query.exec("SELECT num_fish FROM spots WHERE id = " + spotId);
-        query.next();
-        int curNumFish = m_tableModel->columnCount() - 1; // query.value(0).toInt();
+        int curNumFish = m_tableModel->columnCount() - 1;
 
         bool ok;
         int numFish = QInputDialog::getInt(this, "Number of Fish", "Number of Fish", curNumFish, 1, 15, 1, &ok);
@@ -418,7 +404,6 @@ void MainWindow::handleTreeRightClick(const QPoint& pos)
             selected->data().toString() + ", " + QString::number(sortOrder) + ") WHERE id = " + spotId);
         // Redraw the tree :-/
         m_treeModel->buildTree();
-        //m_tree->header()->resizeSections(QHeaderView::ResizeToContents);
         handleTreeSelectionChanged();
     }
     else if (selected == deleteAction)
@@ -439,8 +424,6 @@ void MainWindow::handleTreeRightClick(const QPoint& pos)
             query.exec("DELETE FROM catches WHERE spot_id = " + spotId);
             // Redraw the tree :-/
             m_treeModel->itemFromIndex(index.parent())->removeRow(index.row());
-            //m_treeModel->removeRow(index.row());
-            //m_tree->header()->resizeSections(QHeaderView::ResizeToContents);
             handleTreeSelectionChanged();
         }
     }

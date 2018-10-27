@@ -1,10 +1,11 @@
 
+#include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
 
 #include "FishDb.h"
 
-static const int g_curVersion = 2;
+static const int g_curVersion = 3;
 
 QSqlDatabase FishDb::db()
 {
@@ -51,7 +52,8 @@ void FishDb::createNew()
         "spot_id REFERENCES spots(id), bait_id REFERENCES bait(id) ON DELETE CASCADE, fish_id REFERENCES fish(id), count)");
 
     // Create indices
-    query.exec("CREATE UNIQUE INDEX idx_spot_fish ON spot_fish (spot_id, fish_id)");
+    query.exec("CREATE UNIQUE INDEX idx_spot_fish_fish ON spot_fish (spot_id, fish_id)");
+    query.exec("CREATE UNIQUE INDEX idx_spot_fish_sort ON spot_fish (spot_id, sort_order)");
     query.exec("CREATE UNIQUE INDEX idx_catch ON catches (spot_id, bait_id, fish_id)");
 
     // Set the current version.
@@ -76,12 +78,21 @@ void FishDb::open(QString path)
     versionQuery.exec("PRAGMA user_version");
     versionQuery.next();
     int version = versionQuery.value(0).toInt();
+    versionQuery.finish(); // Manually finish this to prevent row locks.
 
     // Version 2 added the num_fish column
     if (version < 2)
     {
         QSqlQuery query(theDb);
         query.exec("ALTER TABLE spots ADD COLUMN num_fish DEFAULT 9");
+    }
+    // Version 3 updated the indices on spot_fish.
+    if (version < 3)
+    {
+        QSqlQuery query(theDb);
+        query.exec("DROP INDEX IF EXISTS idx_spot_fish");
+        query.exec("CREATE UNIQUE INDEX idx_spot_fish_fish ON spot_fish (spot_id, fish_id)");
+        query.exec("CREATE UNIQUE INDEX idx_spot_fish_sort ON spot_fish (spot_id, sort_order)");
     }
 
     versionQuery.exec("PRAGMA user_version = " + QString::number(g_curVersion));

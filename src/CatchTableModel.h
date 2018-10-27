@@ -12,9 +12,9 @@ public:
     enum Roles
     {
         IdRole = Qt::UserRole + 1,
-        NameRole,
-        LevelRole,
-        CatchRole
+        NameRole,  // Bait/fish name
+        LevelRole, // Bait/fish level
+        CatchRole  // Catch count
     };
 
     CatchTableModel(QObject* parent = nullptr);
@@ -33,6 +33,7 @@ public slots:
     void handleFishNameChanged(const QModelIndex& index);
 
 protected:
+    // This uses the item data in the row to update items' text with percentages.
     void updateCatches(int row);
     void appendBaitRow();
 

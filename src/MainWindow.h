@@ -28,7 +28,6 @@ protected slots:
     void handleMoveDown();
 
     void handleTreeColumnResize();
-    void handleTreeDataChanged();
     void handleTreeSelectionChanged();
     void handleTreeRightClick(const QPoint& pos);
 

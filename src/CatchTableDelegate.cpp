@@ -25,7 +25,8 @@ QWidget* CatchTableDelegate::createEditor(QWidget* parent, const QStyleOptionVie
         QStringList fishNames;
 
         QSqlQuery query(FishDb::db());
-        query.exec("SELECT name FROM fish");
+        query.exec("SELECT name FROM fish WHERE name IS NOT \"" +
+            index.data(CatchTableModel::NameRole).toString() + "\"");
         while (query.next())
         {
             fishNames.append(query.value(0).toString());
@@ -73,7 +74,7 @@ void CatchTableDelegate::setModelData(QWidget* editor, QAbstractItemModel* model
     {
         QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editor);
         QString name = lineEdit->text();
-        if (name.isEmpty())
+        if (name.isEmpty() || name == index.data(CatchTableModel::NameRole).toString())
             return;
 
         model->setData(index, name, CatchTableModel::NameRole);

@@ -66,7 +66,6 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
             QString name = fishQuery.value(1).toString();
             QString level = fishQuery.value(2).toString();
             fishItem->setText(name + " (Lv. " + level + ")");
-            fishItem->setEditable(false);
             fishItem->setData(fishQuery.value(0), IdRole);
             fishItem->setData(name, NameRole);
             fishItem->setData(level.toInt(), LevelRole);
@@ -92,12 +91,23 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
         baitItem->setData(name, NameRole);
         baitItem->setData(level.toInt(), LevelRole);
 
-        QSqlQuery catchQuery(FishDb::db());
         QList<QStandardItem*> baitItems{baitItem};
         for (int i = 1; i <= m_numFish; ++i)
         {
             // Default to an uninteractable item if we don't know which fish this corresponds to.
             QStandardItem* catchItem = new QStandardItem("-");
+
+            QVariant fishIdVar = fishItemList.at(i)->data(IdRole);
+            if (fishIdVar.isValid())
+            {
+                QSqlQuery catchQuery(FishDb::db());
+                catchQuery.exec("SELECT count FROM catches WHERE bait_id = " + baitId +
+                                " AND spot_id = " + m_currentSpotId +
+                                " AND fish_id = " + fishIdVar.toString());
+                if (catchQuery.next())
+                    catchItem->setData(catchQuery.value(0), CatchRole);
+            }
+
             catchItem->setTextAlignment(Qt::AlignCenter);
             catchItem->setEditable(false);
             baitItems.append(catchItem);
@@ -197,7 +207,7 @@ void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
             }
             else
             {
-                item(changedItem->row(), col)->setText("0"); // Data handling will update the database.
+                item(changedItem->row(), col)->setText("0");
                 item(changedItem->row(), col)->setEditable(true);
             }
         }
@@ -215,63 +225,96 @@ void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
 
 void CatchTableModel::handleFishNameChanged(const QModelIndex& index)
 {
-    QStandardItem* changedItem = itemFromIndex(index);
     QString name = index.data(NameRole).toString();
 
-    // First, insert the fish in the fish table if needed.
-    QSqlQuery fishQuery(FishDb::db());
-    fishQuery.exec("INSERT OR IGNORE INTO FISH (name, level) VALUES (\"" + name + "\", 1)");
+    QString fishId;
+    int lvl = 1;
 
-    // Then grab the fish id and level.
-    fishQuery.exec("SELECT id, level FROM fish WHERE name = \"" + name + "\"");
-    fishQuery.next();
-    QString fishId = fishQuery.value(0).toString();
-    int lvl = fishQuery.value(1).toInt();
+    // First, try to grab the id and level for the fish.
+    QSqlQuery query(FishDb::db());
+    query.exec("SELECT id, level FROM fish WHERE name = \"" + name + "\"");
+    // If there's an existing fish with this name, grab the id and level.
+    if (query.next())
+    {
+        fishId = query.value(0).toString();
+        lvl = query.value(1).toInt();
+    }
+    // Otherwise, add a new fish entry and grab its id.
+    else
+    {
+        query.exec("INSERT INTO FISH (name, level) VALUES (\"" + name + "\", 1)");
+        query.exec("SELECT id FROM fish WHERE name = \"" + name + "\"");
+        query.next();
+        fishId = query.value(0).toString();
+    }
 
+    // If there already was a column for this fish, set it to an unknown fish.
+    query.exec("SELECT sort_order FROM spot_fish WHERE "
+        "spot_id = " + m_currentSpotId + " AND fish_id = " + fishId);
+    if (query.next())
+    {
+        int col = query.value(0).toInt();
+        item(0, col)->setText("???");
+        item(0, col)->setData(QVariant(), NameRole);
+        item(0, col)->setData(QVariant(), IdRole);
+        item(0, col)->setData(1, LevelRole);
+
+        for (int row = 1; row < rowCount() - 1; ++row)
+        {
+            item(row, col)->setData(QVariant(), CatchRole);
+        }
+
+        query.exec("DELETE FROM spot_fish WHERE spot_id = " + m_currentSpotId + " AND sort_order = " + QString::number(col));
+    }
+
+    QStandardItem* changedItem = itemFromIndex(index);
     changedItem->setData(fishId, IdRole);
     changedItem->setData(lvl, LevelRole);
 
-    QSqlQuery query(FishDb::db());
     query.exec("REPLACE INTO spot_fish (spot_id, fish_id, sort_order) VALUES (" +
                m_currentSpotId + ", " + fishId + ", " + QString::number(index.column()) + ")");
 
     // Update catch items for this fish for all bait.
     for (int row = 1; row < rowCount() - 1; ++row)
     {
-        item(row, changedItem->column())->setText("0");
-        item(row, changedItem->column())->setEditable(true);
+        QString baitId = item(row, 0)->data(IdRole).toString();
+        query.exec("SELECT count FROM catches WHERE bait_id = " + baitId + " AND spot_id = " + m_currentSpotId + " AND fish_id = " + fishId);
+        int catchCount = 0;
+        if (query.next())
+            catchCount = query.value(0).toInt();
+
+        item(row, index.column())->setData(catchCount, CatchRole);
+        updateCatches(row);
     }
 
     changedItem->setText(name + " (Lv. " + QString::number(lvl) + ")");
-    changedItem->setEditable(false);
 }
 
 void CatchTableModel::updateCatches(int row)
 {
-    QString baitId = index(row, 0).data(IdRole).toString();
-    QSqlQuery query(FishDb::db());
-    query.exec("SELECT SUM(count) FROM catches WHERE "
-        "bait_id = " + baitId + " AND spot_id = " + m_currentSpotId);
-    query.next();
-    int totalCatches = query.value(0).toInt();
+    int totalCatches = 0;
+    for (int col = 1; col < columnCount(); ++col)
+    {
+        totalCatches += index(row, col).data(CatchRole).toInt();
+    }
 
     for (int i = 1; i < columnCount(); ++i)
     {
         QVariant fishIdVar = index(0, i).data(IdRole);
         if (fishIdVar.isValid())
         {
-            QString fishId = fishIdVar.toString();
-            query.exec("SELECT count FROM catches WHERE "
-                "bait_id = " + baitId + " AND fish_id = " + fishId + " AND spot_id = " + m_currentSpotId);
-            query.next();
-            int catches = query.value(0).toInt();
+            int catches = index(row, i).data(CatchRole).toInt();
             QString text = QString::number(catches);
             if (catches > 0 && totalCatches > 0)
             {
-                int percent = std::round(float(catches * 100) / float(totalCatches));
+                int percent = static_cast<int>(std::round(float(catches * 100) / float(totalCatches)));
                 text += (" (" + QString::number(percent) + "%)");
             }
             item(row, i)->setText(text);
+        }
+        else
+        {
+            item(row, i)->setText("-");
         }
     }
 }
