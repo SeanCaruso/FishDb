@@ -27,18 +27,10 @@
 #include "MainWindow.h"
 
 // ISSUES TO LOOK AT:
-// - CRITICAL - Adding new zones doesn't put them where they should be going (and they might not get added at all).
 // - (Low Priority) - Search/Filter for spots
 // - (Low Priority) - Fish browser dialog that allows removing of unused (i.e. mistake) fish
 
-// FISH LOGS (10-25 db up to date):
-// 10/27/2018 - 1 Ocean Cloud from Moraby Bay w/ Pill Bug, 1 Brass Loach from The Clutch w/ Crayfish Ball
-//            - 1 Maiden Carp from The Unholy Heir w/ Crayfish Ball, 1 Lominsan Anchovy from The Silver Bazaar w/ Pill Bug
-//            - 2 Crayfish from The Footfalls w/ Crayfish Ball
-//            - Upper Soot Creek: 4 Bone Crayfish w/ Moth Pupa, 3 Brass Loach w/ Crayfish Ball
-//            - Lower Soot Creek: 1 Bone Crayfish w/ Moth Pupa; 1 Bone Crayfish, 1 Dusk Goby, 1 Brass Loach w/ Crayfish Ball
-//            - 1 Brass Loach from The Goblet w/ Crayfish Ball
-// 10/28/2018 - 1 Princess Trout from Rogue River w/ Crayfish Ball
+// FISH LOGS (10-28 db up to date):
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -231,8 +223,9 @@ void MainWindow::handleNew()
 
 void MainWindow::handleAddRegion()
 {
-    QModelIndex idx = m_treeModel->addRegion();
-    m_tree->selectionModel()->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect);
+    QModelIndex index = m_treeModel->addRegion();
+    m_tree->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect);
+    m_tree->edit(index);
 }
 
 void MainWindow::handleAddZone()
@@ -247,6 +240,7 @@ void MainWindow::handleAddZone()
     QModelIndex zoneIdx = m_treeModel->addZone(regionIdx);
     m_tree->expand(regionIdx);
     m_tree->selectionModel()->setCurrentIndex(zoneIdx, QItemSelectionModel::ClearAndSelect);
+    m_tree->edit(zoneIdx);
 }
 
 void MainWindow::handleAddSpot()
@@ -259,8 +253,10 @@ void MainWindow::handleAddSpot()
     }
 
     QModelIndex spotIdx = m_treeModel->addSpot(zoneIdx);
+    QString test = spotIdx.data(FishDbTreeModel::IdRole).toString();
     m_tree->expand(zoneIdx);
     m_tree->selectionModel()->setCurrentIndex(spotIdx, QItemSelectionModel::ClearAndSelect);
+    m_tree->edit(spotIdx);
 }
 
 void MainWindow::handleMoveUp()

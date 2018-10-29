@@ -115,10 +115,11 @@ QModelIndex FishDbTreeModel::addSpot(const QModelIndex& zoneIdx, QString name, i
 {
     QStandardItem* zoneItem = itemFromIndex(zoneIdx);
     QString zoneId = zoneItem->data(IdRole).toString();
+    QString sortOrder = QString::number(zoneItem->rowCount());
     QSqlQuery query(FishDb::db());
     bool ok = query.exec("INSERT INTO spots (zone_id, name, level, freshwater, sort_order, num_fish) "
                          "VALUES (" + zoneId + ", \"" + name + "\", " + QString::number(level) + ", " +
-                         QString::number(freshwater ? 1 : 0) + ", " + QString::number(zoneItem->rowCount()) + ", 9)");
+                         QString::number(freshwater ? 1 : 0) + ", " + sortOrder + ", 9)");
 
     if (!ok)
     {
@@ -126,7 +127,7 @@ QModelIndex FishDbTreeModel::addSpot(const QModelIndex& zoneIdx, QString name, i
         return QModelIndex();
     }
 
-    query.exec("SELECT id FROM spots WHERE name IS \"" + name + "\" AND sort_order IS " + QString::number(zoneItem->rowCount()));
+    query.exec("SELECT id FROM spots WHERE name = \"" + name + "\" AND sort_order = " + sortOrder + " AND zone_id = " + zoneId);
     if (query.next())
     {
         QStandardItem* nameItem = new QStandardItem(name);
