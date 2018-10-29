@@ -73,8 +73,12 @@ MainWindow::MainWindow(QWidget* parent)
     mainLayout->addLayout(buttonLayout, 1, 0, Qt::AlignVCenter);
 
     // Build the tree view that contains all the fishing spots. ======================================================
+    QVBoxLayout* treeLayout = new QVBoxLayout;
+    mainLayout->addLayout(treeLayout, 1, 1);
+
     m_tree = new QTreeView(this);
     m_tree->setSelectionMode(QAbstractItemView::SingleSelection);
+    treeLayout->addWidget(m_tree);
 
     // Set up the tree header
     m_tree->header()->setStretchLastSection(false);
@@ -88,7 +92,6 @@ MainWindow::MainWindow(QWidget* parent)
     m_tree->expandAll();
     handleTreeColumnResize(); // Manually call this here to initialize to the correct size.
     m_tree->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
-    mainLayout->addWidget(m_tree, 1, 1);
 
     connect(m_tree->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::handleTreeSelectionChanged);
     connect(m_treeModel, &FishDbTreeModel::spotChanged, this, &MainWindow::handleTreeSelectionChanged);
@@ -96,6 +99,13 @@ MainWindow::MainWindow(QWidget* parent)
     // Custom context menu handling
     m_tree->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tree, &QTreeView::customContextMenuRequested, this, &MainWindow::handleTreeRightClick);
+
+    // Tree filtering
+    QLineEdit* treeFilter = new QLineEdit(this);
+    treeFilter->setPlaceholderText("Filter spots...");
+    treeLayout->addWidget(treeFilter);
+
+    connect(treeFilter, &QLineEdit::textChanged, this, &MainWindow::handleTreeFilter);
 
     // Build the table view that contains all the catch info. ==========================================================
     m_tableLabel = new QLabel("", this);
@@ -299,7 +309,7 @@ void MainWindow::handleTreeSelectionChanged()
     // If nothing is selected, disable everything but Add Region.
     if (!currentIdx.isValid())
     {
-        // No changes necessary.
+        m_tableModel->clear();
     }
     // If there's no parent, a region is selected.
     else if (!currentIdx.parent().isValid())
@@ -440,6 +450,67 @@ void MainWindow::handleTreeRightClick(const QPoint& pos)
             m_treeModel->itemFromIndex(index.parent())->removeRow(index.row());
             handleTreeSelectionChanged();
         }
+    }
+}
+
+void MainWindow::handleTreeFilter(QString text)
+{
+    QString searchText = text.toUpper();
+
+    QModelIndex singleSpotIdx;
+    int resultCount = 0;
+
+    for (int regionRow = 0; regionRow < m_treeModel->rowCount(); ++regionRow)
+    {
+        bool hideRegion = !text.isEmpty(); // If the search text is empty, default to visible.
+        QModelIndex regionIdx = m_treeModel->index(regionRow, 0);
+        QStandardItem* regionItem = m_treeModel->itemFromIndex(regionIdx);
+
+        for (int zoneRow = 0; zoneRow < regionItem->rowCount(); ++zoneRow)
+        {
+            bool hideZone = !text.isEmpty(); // If the search text is empty, default to visible.
+            QModelIndex zoneIdx = regionIdx.child(zoneRow, 0);
+            QStandardItem* zoneItem = m_treeModel->itemFromIndex(zoneIdx);
+
+            for (int spotRow = 0; spotRow < zoneItem->rowCount(); ++spotRow)
+            {
+                QModelIndex spotIdx = zoneIdx.child(spotRow, 0);
+                QString spotName = spotIdx.data().toString().toUpper();
+                // If we can't find the search string in the spot name, and we've entered
+                // something to filter by, hide this row.
+                if (!spotName.contains(searchText) && !text.isEmpty())
+                {
+                    m_tree->setRowHidden(spotRow, zoneIdx, true);
+
+                    // If this is the currently selected item, clear the table.
+                    if (m_tree->currentIndex() == spotIdx)
+                    {
+                        m_tree->selectionModel()->setCurrentIndex(QModelIndex(), QItemSelectionModel::ClearAndSelect);
+                    }
+                }
+                // Otherwise, show the row and indicate that we should also show the zone and region.
+                else
+                {
+                    m_tree->setRowHidden(spotRow, zoneIdx, false);
+                    hideZone = false;
+                    hideRegion = false;
+
+                    // Increment the number of results, and keep this spot's index around for later.
+                    singleSpotIdx = spotIdx;
+                    ++resultCount;
+                }
+            }
+
+            m_tree->setRowHidden(zoneRow, regionIdx, hideZone);
+        }
+
+        m_tree->setRowHidden(regionRow, QModelIndex(), hideRegion);
+    }
+
+    // If we're left with a single spot, set that as the selected item.
+    if (resultCount == 1)
+    {
+        m_tree->setCurrentIndex(singleSpotIdx);
     }
 }
 

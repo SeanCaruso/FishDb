@@ -31,6 +31,7 @@ protected slots:
     void handleTreeColumnResize();
     void handleTreeSelectionChanged();
     void handleTreeRightClick(const QPoint& pos);
+    void handleTreeFilter(QString text);
 
     void handleTableDataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles);
     void handleTableRightClick(const QPoint& pos);

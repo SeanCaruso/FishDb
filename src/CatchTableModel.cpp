@@ -32,7 +32,9 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
 
     QSqlQuery freshwaterQuery(FishDb::db());
     freshwaterQuery.exec("SELECT freshwater, num_fish FROM spots WHERE id = " + spotId);
-    freshwaterQuery.next();
+    if (!freshwaterQuery.next())
+        return;
+
     m_freshwater = freshwaterQuery.value(0).toInt();
     m_numFish = freshwaterQuery.value(1).toInt();
     setColumnCount(m_numFish);
