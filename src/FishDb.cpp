@@ -1,7 +1,9 @@
 
+#include <QFile>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
+#include <QXmlStreamWriter>
 
 #include "FishDb.h"
 
@@ -96,4 +98,73 @@ void FishDb::open(QString path)
     }
 
     versionQuery.exec("PRAGMA user_version = " + QString::number(g_curVersion));
+}
+
+void FishDb::exportDb(QString path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadWrite | QIODevice::Truncate))
+        return;
+
+    QXmlStreamWriter stream(&file);
+    stream.setAutoFormatting(true);
+    stream.writeStartDocument();
+
+    stream.writeStartElement("FishDb");
+
+    QSqlQuery regionQuery(db());
+    regionQuery.exec("SELECT id, name FROM regions ORDER BY sort_order");
+    while (regionQuery.next())
+    {
+        stream.writeStartElement("region");
+        stream.writeAttribute("name", regionQuery.value(1).toString());
+
+        QSqlQuery zoneQuery(db());
+        zoneQuery.exec("SELECT id, name FROM zones WHERE region_id = " + regionQuery.value(0).toString() + " ORDER BY sort_order");
+        while (zoneQuery.next())
+        {
+            stream.writeStartElement("zone");
+            stream.writeAttribute("name", zoneQuery.value(1).toString());
+
+            QSqlQuery spotQuery(db());
+            spotQuery.exec("SELECT id, name, level, freshwater, num_fish FROM spots WHERE zone_id = " + zoneQuery.value(0).toString() + " ORDER BY sort_order");
+            while (spotQuery.next())
+            {
+                stream.writeStartElement("spot");
+                stream.writeAttribute("name", spotQuery.value(1).toString());
+                stream.writeAttribute("level", spotQuery.value(2).toString());
+                stream.writeAttribute("freshwater", spotQuery.value(3).toBool() ? "true" : "false");
+                stream.writeAttribute("num_fish", spotQuery.value(4).toString());
+
+                QSqlQuery fishQuery(db());
+                QString spotId = spotQuery.value(0).toString();
+                fishQuery.exec("SELECT fish.id, name, level, sort_order FROM fish, spot_fish WHERE spot_id = " + spotId + " AND spot_fish.fish_id = fish.id ORDER BY sort_order");
+                while (fishQuery.next())
+                {
+                    stream.writeStartElement("fish");
+                    stream.writeAttribute("name", fishQuery.value(1).toString());
+                    stream.writeAttribute("level", fishQuery.value(2).toString());
+                    stream.writeAttribute("sort_order", fishQuery.value(3).toString());
+
+                    QSqlQuery baitQuery(db());
+                    baitQuery.exec("SELECT name, level, count FROM bait, catches WHERE spot_id = " + spotId + " AND catches.bait_id = bait.id AND fish_id = " + fishQuery.value(0).toString() + " ORDER BY level");
+                    while (baitQuery.next())
+                    {
+                        stream.writeStartElement("bait");
+                        stream.writeAttribute("name", baitQuery.value(0).toString());
+                        stream.writeAttribute("level", baitQuery.value(1).toString());
+                        stream.writeAttribute("count", baitQuery.value(2).toString());
+                        stream.writeEndElement(); // bait
+                    }
+                    stream.writeEndElement(); // fish
+                }
+                stream.writeEndElement(); // spot
+            }
+            stream.writeEndElement(); // zone
+        }
+        stream.writeEndElement(); // region
+    }
+    stream.writeEndDocument(); // FishDb
+
+    stream.writeEndDocument();
 }

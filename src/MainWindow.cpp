@@ -2,6 +2,7 @@
 #include <QCheckBox>
 #include <QDateTime>
 #include <QFile>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QHeaderView>
 #include <QInputDialog>
@@ -26,9 +27,18 @@
 #include "MainWindow.h"
 
 // ISSUES TO LOOK AT:
+// - CRITICAL - Adding new zones doesn't put them where they should be going (and they might not get added at all).
+// - (Low Priority) - Search/Filter for spots
 // - (Low Priority) - Fish browser dialog that allows removing of unused (i.e. mistake) fish
 
 // FISH LOGS (10-25 db up to date):
+// 10/27/2018 - 1 Ocean Cloud from Moraby Bay w/ Pill Bug, 1 Brass Loach from The Clutch w/ Crayfish Ball
+//            - 1 Maiden Carp from The Unholy Heir w/ Crayfish Ball, 1 Lominsan Anchovy from The Silver Bazaar w/ Pill Bug
+//            - 2 Crayfish from The Footfalls w/ Crayfish Ball
+//            - Upper Soot Creek: 4 Bone Crayfish w/ Moth Pupa, 3 Brass Loach w/ Crayfish Ball
+//            - Lower Soot Creek: 1 Bone Crayfish w/ Moth Pupa; 1 Bone Crayfish, 1 Dusk Goby, 1 Brass Loach w/ Crayfish Ball
+//            - 1 Brass Loach from The Goblet w/ Crayfish Ball
+// 10/28/2018 - 1 Princess Trout from Rogue River w/ Crayfish Ball
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -170,8 +180,9 @@ MainWindow::MainWindow(QWidget* parent)
     fileMenu->addAction(newAction);
     connect(newAction, &QAction::triggered, this, &MainWindow::handleNew);
 
-    QAction* saveAsAction = new QAction("&Save As...", this);
-    fileMenu->addAction(saveAsAction);
+    QAction* exportAction = new QAction("&Export...", this);
+    fileMenu->addAction(exportAction);
+    connect(exportAction, &QAction::triggered, this, &MainWindow::handleExport);
 
     fileMenu->addSeparator();
 
@@ -185,6 +196,13 @@ MainWindow::MainWindow(QWidget* parent)
     restoreGeometry(settings.value("geometry").toByteArray());
     restoreState(settings.value("windowState").toByteArray());
     settings.endGroup();
+}
+
+void MainWindow::handleExport()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Export Database", "D:/src/fishdb.xml", "XML files (*.xml)");
+    if (!fileName.isEmpty())
+        FishDb::exportDb(fileName);
 }
 
 void MainWindow::handleNew()

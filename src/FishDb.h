@@ -9,4 +9,6 @@ namespace FishDb
 
     void createNew();
     void open(QString path);
+
+    void exportDb(QString path);
 };

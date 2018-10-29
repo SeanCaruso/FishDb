@@ -18,6 +18,7 @@ public:
     MainWindow(QWidget* parent = nullptr);
 
 protected slots:
+    void handleExport();
     void handleNew();
 
     void handleAddRegion();
