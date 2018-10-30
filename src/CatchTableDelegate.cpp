@@ -73,15 +73,29 @@ void CatchTableDelegate::setModelData(QWidget* editor, QAbstractItemModel* model
     if (index.column() == 0 || index.row() == 0)
     {
         QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editor);
-        QString name = lineEdit->text();
-        if (name.isEmpty() || name == index.data(CatchTableModel::NameRole).toString())
+        QString text = lineEdit->text();
+
+        QStringList strings = text.split(",");
+        QString name = strings.at(0).trimmed();
+        int lvl = model->data(index, CatchTableModel::LevelRole).toInt();
+        if (strings.size() == 2)
+        {
+            bool ok;
+            int newLvl = strings.at(1).trimmed().toInt(&ok);
+            if (ok && newLvl > 0 && newLvl <= 70)
+                lvl = newLvl;
+        }
+
+        // If we haven't entered anything or the name matches the existing entry, just return.
+        if (text.isEmpty() || name == index.data(CatchTableModel::NameRole).toString())
             return;
 
         model->setData(index, name, CatchTableModel::NameRole);
+        model->setData(index, lvl, CatchTableModel::LevelRole);
         if (index.column() == 0)
-            emit baitNameChanged(index);
+            emit baitChanged(index);
         else
-            emit fishNameChanged(index);
+            emit fishChanged(index);
     }
     // Otherwise, don't do anything if we're in the last row.
     else if (index.row() == model->rowCount() - 1)

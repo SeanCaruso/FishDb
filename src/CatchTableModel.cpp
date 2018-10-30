@@ -6,6 +6,8 @@
 
 #include "CatchTableModel.h"
 
+const int CatchTableModel::g_invalidLevel = 999;
+
 CatchTableModel::CatchTableModel(QObject* parent)
     : QStandardItemModel(parent)
     , m_currentSpotId("")
@@ -59,7 +61,7 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
     {
         // Default to an unknown fish.
         QStandardItem* fishItem = new QStandardItem("???");
-        fishItem->setData(999, LevelRole);
+        fishItem->setData(g_invalidLevel, LevelRole);
         fishItem->setTextAlignment(Qt::AlignCenter);
 
         // If we have a known fish for this column, update the item.
@@ -175,7 +177,7 @@ bool CatchTableModel::addOrSubtractCatch(const QModelIndex& index, bool add)
     return true;
 }
 
-void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
+void CatchTableModel::handleBaitChanged(const QModelIndex& index)
 {
     QStandardItem* changedItem = itemFromIndex(index);
     QFont font = changedItem->font();
@@ -190,9 +192,11 @@ void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
     // Add the bait if it doesn't exist yet.
     if (!index.data(IdRole).isValid())
     {
-        lvl = 1;
-        changedItem->setData(1, LevelRole);
-        query.exec("INSERT INTO bait (name, level, freshwater) VALUES (\"" + name + "\", 1, " + QString::number(m_freshwater) + ")");
+        if (lvl == g_invalidLevel)
+            lvl = 1;
+        changedItem->setData(lvl, LevelRole);
+        query.exec("INSERT INTO bait (name, level, freshwater) VALUES "
+            "(\"" + name + "\", " + QString::number(lvl) + ", " + QString::number(m_freshwater) + ")");
 
         query.exec("SELECT id FROM bait WHERE name = \"" + name + "\"");
         query.next();
@@ -223,14 +227,15 @@ void CatchTableModel::handleBaitNameChanged(const QModelIndex& index)
     }
 
     changedItem->setText(name + " (Lv. " + QString::number(lvl) + ")");
+    changedItem->setEditable(false);
 }
 
-void CatchTableModel::handleFishNameChanged(const QModelIndex& index)
+void CatchTableModel::handleFishChanged(const QModelIndex& index)
 {
     QString name = index.data(NameRole).toString();
 
     QString fishId;
-    int lvl = 1;
+    int lvl = index.data(LevelRole).toInt();
 
     // First, try to grab the id and level for the fish.
     QSqlQuery query(FishDb::db());
@@ -244,7 +249,10 @@ void CatchTableModel::handleFishNameChanged(const QModelIndex& index)
     // Otherwise, add a new fish entry and grab its id.
     else
     {
-        query.exec("INSERT INTO FISH (name, level) VALUES (\"" + name + "\", 1)");
+        if (lvl == g_invalidLevel)
+            lvl = 1;
+        query.exec("INSERT INTO FISH (name, level) VALUES "
+            "(\"" + name + "\", " + QString::number(lvl) + ")");
         query.exec("SELECT id FROM fish WHERE name = \"" + name + "\"");
         query.next();
         fishId = query.value(0).toString();
@@ -259,7 +267,7 @@ void CatchTableModel::handleFishNameChanged(const QModelIndex& index)
         item(0, col)->setText("???");
         item(0, col)->setData(QVariant(), NameRole);
         item(0, col)->setData(QVariant(), IdRole);
-        item(0, col)->setData(1, LevelRole);
+        item(0, col)->setData(g_invalidLevel, LevelRole);
 
         for (int row = 1; row < rowCount() - 1; ++row)
         {
@@ -329,7 +337,7 @@ void CatchTableModel::appendBaitRow()
     itemFont.setItalic(true);
     addBaitItem->setFont(itemFont);
     addBaitItem->setForeground(QColor(150, 150, 150));
-    addBaitItem->setData(999, LevelRole); // Trick for sorting to keep this on the bottom.
+    addBaitItem->setData(g_invalidLevel, LevelRole); // Trick for sorting to keep this on the bottom.
 
     QList<QStandardItem*> items{addBaitItem};
     for (int i = 1; i <= m_numFish; ++i)

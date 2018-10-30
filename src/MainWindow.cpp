@@ -124,8 +124,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     connect(m_table->model(), &QAbstractItemModel::dataChanged, this, &MainWindow::handleTableDataChanged);
 
-    connect(tableDelegate, &CatchTableDelegate::baitNameChanged, m_tableModel, &CatchTableModel::handleBaitNameChanged);
-    connect(tableDelegate, &CatchTableDelegate::fishNameChanged, m_tableModel, &CatchTableModel::handleFishNameChanged);
+    connect(tableDelegate, &CatchTableDelegate::baitChanged, m_tableModel, &CatchTableModel::handleBaitChanged);
+    connect(tableDelegate, &CatchTableDelegate::fishChanged, m_tableModel, &CatchTableModel::handleFishChanged);
 
     // Custom context menu handling
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);

@@ -14,7 +14,7 @@ public:
     void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const;
 
 signals:
-    void baitNameChanged(const QModelIndex& index) const;
+    void baitChanged(const QModelIndex& index) const;
     void catchCountChanged(const QModelIndex& index) const;
-    void fishNameChanged(const QModelIndex& index) const;
+    void fishChanged(const QModelIndex& index) const;
 };

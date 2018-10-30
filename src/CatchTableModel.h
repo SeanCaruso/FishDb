@@ -9,6 +9,8 @@ class CatchTableModel : public QStandardItemModel
 
 public:
 
+    static const int g_invalidLevel;
+
     enum Roles
     {
         IdRole = Qt::UserRole + 1,
@@ -29,8 +31,8 @@ public:
     bool addOrSubtractCatch(const QModelIndex& index, bool add);
 
 public slots:
-    void handleBaitNameChanged(const QModelIndex& index);
-    void handleFishNameChanged(const QModelIndex& index);
+    void handleBaitChanged(const QModelIndex& index);
+    void handleFishChanged(const QModelIndex& index);
 
 protected:
     // This uses the item data in the row to update items' text with percentages.
