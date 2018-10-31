@@ -103,6 +103,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Tree filtering
     QLineEdit* treeFilter = new QLineEdit(this);
     treeFilter->setPlaceholderText("Filter spots...");
+    treeFilter->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     treeLayout->addWidget(treeFilter);
 
     connect(treeFilter, &QLineEdit::textChanged, this, &MainWindow::handleTreeFilter);
@@ -469,12 +470,12 @@ void MainWindow::handleTreeFilter(QString text)
         for (int zoneRow = 0; zoneRow < regionItem->rowCount(); ++zoneRow)
         {
             bool hideZone = !text.isEmpty(); // If the search text is empty, default to visible.
-            QModelIndex zoneIdx = regionIdx.child(zoneRow, 0);
+            QModelIndex zoneIdx = m_treeModel->index(zoneRow, 0, regionIdx);
             QStandardItem* zoneItem = m_treeModel->itemFromIndex(zoneIdx);
 
             for (int spotRow = 0; spotRow < zoneItem->rowCount(); ++spotRow)
             {
-                QModelIndex spotIdx = zoneIdx.child(spotRow, 0);
+                QModelIndex spotIdx = m_treeModel->index(spotRow, 0, zoneIdx);
                 QString spotName = spotIdx.data().toString().toUpper();
                 // If we can't find the search string in the spot name, and we've entered
                 // something to filter by, hide this row.
@@ -527,8 +528,17 @@ void MainWindow::handleTableRightClick(const QPoint& pos)
     if (index.data(CatchTableModel::IdRole).isValid())
     {
         QMenu menu(this);
-        QAction* setLevelAction = new QAction("Set &Level");
+        QAction* setLevelAction = new QAction("Set &Level...");
         menu.addAction(setLevelAction);
+
+        QAction* deleteAction = nullptr;
+        if (index.column() == 0)
+        {
+            menu.addSeparator();
+
+            deleteAction = new QAction("&Delete Bait");
+            menu.addAction(deleteAction);
+        }
 
         QAction* action = menu.exec(m_table->mapToGlobal(pos));
         if (action == setLevelAction)
@@ -547,6 +557,26 @@ void MainWindow::handleTableRightClick(const QPoint& pos)
                 {
                     m_tableModel->setFishLevel(index, lvl);
                 }
+            }
+        }
+        else if (action && action == deleteAction)
+        {
+            QMessageBox::StandardButton result = QMessageBox::warning(
+                this,
+                "Are you sure?",
+                "Deleting this item is permanent. Are you sure?",
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No
+            );
+
+            if (result == QMessageBox::Yes)
+            {
+                QString id = index.data(CatchTableModel::IdRole).toString();
+                QSqlQuery query(FishDb::db());
+                query.exec("DELETE FROM catches WHERE bait_id = " + id);
+                query.exec("DELETE FROM bait WHERE id = " + id);
+
+                m_tableModel->removeRow(index.row());
             }
         }
     }
