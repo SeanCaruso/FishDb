@@ -23,6 +23,7 @@
 #include "FishDb.h"
 #include "FishDbTreeDelegate.h"
 #include "FishDbTreeModel.h"
+#include "TriadWidget.h"
 
 #include "MainWindow.h"
 
@@ -35,6 +36,11 @@
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
+    setStyleSheet(
+        "font-family: Calibri; "
+        "font-size: 14px; "
+    );
+
     FishDb::open("D:/src/fishdb.db");
 
     QWidget* mainWidget = new QWidget(this);
@@ -44,16 +50,16 @@ MainWindow::MainWindow(QWidget* parent)
 
     QVBoxLayout* buttonLayout = new QVBoxLayout;
 
-    m_addRegion = new QPushButton("Add Region...");
+    m_addRegion = new QPushButton("Add Region...", this);
     connect(m_addRegion, &QPushButton::clicked, this, &MainWindow::handleAddRegion);
     buttonLayout->addWidget(m_addRegion);
 
-    m_addZone = new QPushButton("Add Zone...");
+    m_addZone = new QPushButton("Add Zone...", this);
     m_addZone->setEnabled(false);
     connect(m_addZone, &QPushButton::clicked, this, &MainWindow::handleAddZone);
     buttonLayout->addWidget(m_addZone);
 
-    m_addSpot = new QPushButton("Add Spot...");
+    m_addSpot = new QPushButton("Add Spot...", this);
     m_addSpot->setEnabled(false);
     connect(m_addSpot, &QPushButton::clicked, this, &MainWindow::handleAddSpot);
     buttonLayout->addWidget(m_addSpot);
@@ -177,6 +183,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     // Now that everything is set up, add and connect menu items. ======================================================
+    // File Menu -------------------------------------
     QMenu* fileMenu = menuBar()->addMenu("&File");
 
     QAction* newAction = new QAction("&New", this);
@@ -192,6 +199,17 @@ MainWindow::MainWindow(QWidget* parent)
     QAction* quitAction = new QAction("&Quit", this);
     fileMenu->addAction(quitAction);
     connect(quitAction, &QAction::triggered, this, &QMainWindow::close);
+
+    // Tools Menu ------------------------------------
+    QMenu* toolsMenu = menuBar()->addMenu("&Tools");
+
+    QAction* triadAction = new QAction("&Triple Triad Solver", this);
+    toolsMenu->addAction(triadAction);
+    connect(triadAction, &QAction::triggered, [=]()
+    {
+        TriadWidget* triadWidget = new TriadWidget(this);
+        triadWidget->show();
+    });
 
     // Restore last window position.
     QSettings settings;

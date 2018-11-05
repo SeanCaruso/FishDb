@@ -32,7 +32,8 @@ SOURCES += \
     src/FishDbTreeDelegate.cpp \
     src/FishDbTreeModel.cpp \
     src/main.cpp \
-    src/MainWindow.cpp
+    src/MainWindow.cpp \
+    src/TriadWidget.cpp
 
 HEADERS += \
     src/CatchTableDelegate.h \
@@ -41,7 +42,8 @@ HEADERS += \
     src/FishDb.h \
     src/FishDbTreeDelegate.h \
     src/FishDbTreeModel.h \
-    src/MainWindow.h
+    src/MainWindow.h \
+    src/TriadWidget.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
