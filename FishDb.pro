@@ -28,6 +28,7 @@ SOURCES += \
     src/CatchTableDelegate.cpp \
     src/CatchTableModel.cpp \
     src/CatchTableView.cpp \
+    src/FishBrowser.cpp \
     src/FishDb.cpp \
     src/FishDbTreeDelegate.cpp \
     src/FishDbTreeModel.cpp \
@@ -39,6 +40,7 @@ HEADERS += \
     src/CatchTableDelegate.h \
     src/CatchTableModel.h \
     src/CatchTableView.h \
+    src/FishBrowser.h \
     src/FishDb.h \
     src/FishDbTreeDelegate.h \
     src/FishDbTreeModel.h \

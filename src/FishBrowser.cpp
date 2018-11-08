@@ -28,7 +28,7 @@ FishBrowser::FishBrowser(QWidget* parent, Qt::WindowFlags f)
         fishCombo->addItem(text, query.value(0).toString());
     }
 
-    connect(fishCombo, (void(QComboBox::*)(int)) &QComboBox::currentIndexChanged, [=](int index)
+    connect(fishCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index)
     {
         QString id = fishCombo->itemData(index).toString();
         lookupFish(id);
@@ -98,7 +98,7 @@ void FishBrowser::lookupFish(QString id)
             newCatch.text = spotName + " (" + baitText + "), " + zoneName;
             newCatch.catches = itr.value();
             newCatch.total = totalCatches[baitText];
-            newCatch.percent = ((float)itr.value() / (float)totalCatches[baitText]) * 100;
+            newCatch.percent = int(std::round(float(itr.value() * 100) / float(totalCatches[baitText])));
 
             insertCatch(newCatch, catches);
         }
