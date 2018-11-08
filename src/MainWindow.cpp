@@ -20,10 +20,10 @@
 #include "CatchTableDelegate.h"
 #include "CatchTableModel.h"
 #include "CatchTableView.h"
+#include "FishBrowser.h"
 #include "FishDb.h"
 #include "FishDbTreeDelegate.h"
 #include "FishDbTreeModel.h"
-#include "TriadWidget.h"
 
 #include "MainWindow.h"
 
@@ -203,12 +203,12 @@ MainWindow::MainWindow(QWidget* parent)
     // Tools Menu ------------------------------------
     QMenu* toolsMenu = menuBar()->addMenu("&Tools");
 
-    QAction* triadAction = new QAction("&Triple Triad Solver", this);
-    toolsMenu->addAction(triadAction);
-    connect(triadAction, &QAction::triggered, [=]()
+    QAction* fishAction = new QAction("&Fish Browser", this);
+    toolsMenu->addAction(fishAction);
+    connect(fishAction, &QAction::triggered, [=]()
     {
-        TriadWidget* triadWidget = new TriadWidget(this);
-        triadWidget->show();
+        FishBrowser* dlg = new FishBrowser(this);
+        dlg->exec();
     });
 
     // Restore last window position.
