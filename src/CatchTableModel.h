@@ -16,7 +16,8 @@ public:
         IdRole = Qt::UserRole + 1,
         NameRole,  // Bait/fish name
         LevelRole, // Bait/fish level
-        CatchRole  // Catch count
+        CatchRole, // Catch count
+        FreshwaterRole
     };
 
     CatchTableModel(QObject* parent = nullptr);

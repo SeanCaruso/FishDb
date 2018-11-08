@@ -81,9 +81,12 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
     }
     appendRow(fishItemList);
 
-    // Add a row for each bait with the same water type.
+    // Add a row for each bait that we know has catches at this spot.
     QSqlQuery baitQuery(FishDb::db());
-    baitQuery.exec("SELECT id, name, level FROM bait WHERE freshwater = " + QString::number(m_freshwater) + " ORDER BY level");
+    baitQuery.exec("SELECT DISTINCT id, name, level FROM bait, catches WHERE "
+                   "spot_id = " + m_currentSpotId + " AND "
+                   "freshwater = " + QString::number(m_freshwater) + " AND "
+                   "id = catches.bait_id ORDER BY level");
     while (baitQuery.next())
     {
         QString baitId = baitQuery.value(0).toString();
@@ -337,6 +340,7 @@ void CatchTableModel::appendBaitRow()
     itemFont.setItalic(true);
     addBaitItem->setFont(itemFont);
     addBaitItem->setForeground(QColor(150, 150, 150));
+    addBaitItem->setData(m_freshwater, FreshwaterRole);
     addBaitItem->setData(g_invalidLevel, LevelRole); // Trick for sorting to keep this on the bottom.
 
     QList<QStandardItem*> items{addBaitItem};

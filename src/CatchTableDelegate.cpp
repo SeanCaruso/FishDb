@@ -51,7 +51,22 @@ QWidget* CatchTableDelegate::createEditor(QWidget* parent, const QStyleOptionVie
     }
     // Otherwise, we're changing a bait name.
     else
-        return QStyledItemDelegate::createEditor(parent, option, index);
+    {
+        QStringList baitNames;
+
+        QSqlQuery query(FishDb::db());
+        query.exec("SELECT name FROM bait WHERE freshwater = " + index.data(CatchTableModel::FreshwaterRole).toString());
+        while (query.next())
+        {
+            baitNames.append(query.value(0).toString());
+        }
+
+        QLineEdit* editor = new QLineEdit(parent);
+        QCompleter* completer = new QCompleter(baitNames);
+        completer->setCompletionMode(QCompleter::InlineCompletion);
+        editor->setCompleter(completer);
+        return editor;
+    }
 }
 
 void CatchTableDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const
@@ -75,9 +90,16 @@ void CatchTableDelegate::setModelData(QWidget* editor, QAbstractItemModel* model
         QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editor);
         QString text = lineEdit->text();
 
+        // Split on a comma to handle levels (i.e., "Bait/Fish,[lvl]")
         QStringList strings = text.split(",");
         QString name = strings.at(0).trimmed();
-        int lvl = model->data(index, CatchTableModel::LevelRole).toInt();
+
+        // If we haven't entered anything or the name matches the existing entry, just return.
+        if (text.isEmpty() || name == index.data(CatchTableModel::NameRole).toString())
+            return;
+
+        int lvl = model->data(index, CatchTableModel::LevelRole).toInt(); // Default the level to whatever was in the data.
+        // If there was a string after a comma, try to extract the level.
         if (strings.size() == 2)
         {
             bool ok;
@@ -86,9 +108,16 @@ void CatchTableDelegate::setModelData(QWidget* editor, QAbstractItemModel* model
                 lvl = newLvl;
         }
 
-        // If we haven't entered anything or the name matches the existing entry, just return.
-        if (text.isEmpty() || name == index.data(CatchTableModel::NameRole).toString())
-            return;
+        // If we're in column 0, see if there's an existing bait to pull the level from.
+        if (index.column() == 0)
+        {
+            QSqlQuery query(FishDb::db());
+            query.exec("SELECT level FROM bait WHERE name = \"" + name + "\"");
+            if (query.next())
+            {
+                lvl = query.value(0).toInt();
+            }
+        }
 
         model->setData(index, name, CatchTableModel::NameRole);
         model->setData(index, lvl, CatchTableModel::LevelRole);
