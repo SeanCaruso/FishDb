@@ -204,10 +204,14 @@ MainWindow::MainWindow(QWidget* parent)
     QMenu* toolsMenu = menuBar()->addMenu("&Tools");
 
     QAction* fishAction = new QAction("&Fish Browser", this);
+    fishAction->setShortcut(QKeySequence::Find);
     toolsMenu->addAction(fishAction);
     connect(fishAction, &QAction::triggered, [=]()
     {
         FishBrowser* dlg = new FishBrowser(this);
+
+        connect(dlg, &FishBrowser::spotDoubleClicked, this, &MainWindow::setTreeSpot);
+
         dlg->exec();
     });
 
@@ -312,7 +316,7 @@ void MainWindow::handleTreeColumnResize()
 {
     int width = m_tree->header()->length();
     width += style()->pixelMetric(QStyle::PM_ScrollBarExtent);
-    m_tree->setMinimumWidth(width + 2);
+    m_tree->setMinimumWidth(width + 8);
 }
 
 void MainWindow::handleTreeSelectionChanged()
@@ -352,7 +356,7 @@ void MainWindow::handleTreeSelectionChanged()
         labelText = spotName + " (Lv. " + spotLevel + " " + freshwater + ")";
 
         QString spotId = currentIdx.sibling(currentIdx.row(), FishDbTreeModel::IdCol).data(FishDbTreeModel::IdRole).toString();
-        setSpot(spotId, false);
+        setTableSpot(spotId, false);
 
         addZone = true;
         addSpot = true;
@@ -435,7 +439,7 @@ void MainWindow::handleTreeRightClick(const QPoint& pos)
     {
         m_treeModel->setFreshwater(index, selected == freshAction);
         handleTreeSelectionChanged();
-        setSpot(index.data(FishDbTreeModel::IdRole).toString(), true);
+        setTableSpot(index.data(FishDbTreeModel::IdRole).toString(), true);
     }
     else if (selected->associatedWidgets().at(0) == moveToMenu)
     {
@@ -616,7 +620,18 @@ void MainWindow::handleAddFishCol()
     setNumberOfFish(spotId, m_tableModel->columnCount());
 }
 
-void MainWindow::setSpot(QString spotId, bool forceReset)
+void MainWindow::setTreeSpot(QString spotId)
+{
+    QStandardItem* item = m_treeModel->getSpotItem(spotId);
+    if (item)
+    {
+        m_tree->setCurrentIndex(item->index());
+        m_tree->expand(item->parent()->index());
+        m_tree->expand(item->parent()->parent()->index());
+    }
+}
+
+void MainWindow::setTableSpot(QString spotId, bool forceReset)
 {
     m_tableModel->setSpot(spotId, forceReset);
     m_table->resizeColumns();
@@ -634,7 +649,7 @@ void MainWindow::setNumberOfFish(QString spotId, int numFish)
 {
     QSqlQuery query(FishDb::db());
     query.exec("UPDATE spots SET num_fish = " + QString::number(numFish) + " WHERE id = " + spotId);
-    setSpot(spotId, true);
+    setTableSpot(spotId, true);
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)

@@ -86,7 +86,8 @@ void CatchTableModel::setSpot(QString spotId, bool forceReset)
     baitQuery.exec("SELECT DISTINCT id, name, level FROM bait, catches WHERE "
                    "spot_id = " + m_currentSpotId + " AND "
                    "freshwater = " + QString::number(m_freshwater) + " AND "
-                   "id = catches.bait_id ORDER BY level");
+                   "id = catches.bait_id AND count > 0 "
+                   "ORDER BY level");
     while (baitQuery.next())
     {
         QString baitId = baitQuery.value(0).toString();

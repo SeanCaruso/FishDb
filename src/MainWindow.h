@@ -40,7 +40,8 @@ protected slots:
     void handleAddFishCol();
 
 protected:
-    void setSpot(QString spotId, bool forceReset);
+    void setTreeSpot(QString spotId);
+    void setTableSpot(QString spotId, bool forceReset);
     void setNumberOfFish(QString spotId, int numFish);
 
     void closeEvent(QCloseEvent* event);

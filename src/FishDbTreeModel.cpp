@@ -46,12 +46,17 @@ void FishDbTreeModel::buildTree()
             spotQuery.exec("SELECT id, name, level, freshwater FROM spots WHERE zone_id = " + zoneQuery.value(0).toString() + " ORDER BY sort_order");
             while (spotQuery.next())
             {
+                QString spotId = spotQuery.value(0).toString();
+
                 QStandardItem* nameItem = new QStandardItem(spotQuery.value(1).toString());
-                nameItem->setData(spotQuery.value(0));
+                nameItem->setData(spotId, IdRole);
                 nameItem->setData(spotQuery.value(3), FreshwaterRole);
                 QStandardItem* lvlItem = new QStandardItem("Lv. " + spotQuery.value(2).toString());
                 lvlItem->setData(QVariant::fromValue(spotQuery.value(2).toInt()));
                 zoneItem->appendRow(QList<QStandardItem*>{nameItem, lvlItem});
+
+                // Store this spot item in the map.
+                m_spotItemMap[spotId] = nameItem;
             }
         }
     }
@@ -130,12 +135,16 @@ QModelIndex FishDbTreeModel::addSpot(const QModelIndex& zoneIdx, QString name, i
     query.exec("SELECT id FROM spots WHERE name = \"" + name + "\" AND sort_order = " + sortOrder + " AND zone_id = " + zoneId);
     if (query.next())
     {
+        QString spotId = query.value(0).toString();
+
         QStandardItem* nameItem = new QStandardItem(name);
-        nameItem->setData(query.value(0), IdRole);
+        nameItem->setData(spotId, IdRole);
         nameItem->setData(QVariant::fromValue(freshwater ? 1 : 0), FreshwaterRole);
         QStandardItem* lvlItem = new QStandardItem("Lv. " + QString::number(level));
         lvlItem->setData(QVariant::fromValue(level));
         zoneItem->appendRow(QList<QStandardItem*>{nameItem, lvlItem});
+
+        m_spotItemMap[spotId] = nameItem;
 
         return nameItem->index();
     }
@@ -199,6 +208,11 @@ void FishDbTreeModel::setFreshwater(const QModelIndex& idx, bool isFreshwater)
     itemFromIndex(idx)->setData(QVariant::fromValue(val), FreshwaterRole);
     QSqlQuery(FishDb::db()).exec("UPDATE spots SET freshwater = " + QString::number(val) +
         " WHERE id = " + itemFromIndex(idx)->data(IdRole).toString());
+}
+
+QStandardItem* FishDbTreeModel::getSpotItem(QString spotId)
+{
+    return m_spotItemMap.contains(spotId) ? m_spotItemMap[spotId] : nullptr;
 }
 
 void FishDbTreeModel::handleDataChanged(const QModelIndex& topLeft, const QModelIndex&, const QVector<int>& roles)

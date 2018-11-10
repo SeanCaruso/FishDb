@@ -11,6 +11,8 @@ struct Catch
     int catches;
     int total;
     QString text;
+
+    QString spotId;
 };
 
 class FishBrowser : public QDialog
@@ -20,6 +22,9 @@ class FishBrowser : public QDialog
 public:
     explicit FishBrowser(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     ~FishBrowser();
+
+signals:
+    void spotDoubleClicked(QString spotId) const;
 
 protected:
     void lookupFish(QString id);

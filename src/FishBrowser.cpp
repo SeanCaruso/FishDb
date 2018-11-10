@@ -3,6 +3,7 @@
 #include <QCompleter>
 #include <QHash>
 #include <QLayout>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QSqlQuery>
 
@@ -17,6 +18,7 @@ FishBrowser::FishBrowser(QWidget* parent, Qt::WindowFlags f)
 
     QComboBox* fishCombo = new QComboBox(this);
     fishCombo->setEditable(true);
+    fishCombo->setInsertPolicy(QComboBox::NoInsert);
     layout->addWidget(fishCombo);
 
     QStringList fishNames;
@@ -28,14 +30,26 @@ FishBrowser::FishBrowser(QWidget* parent, Qt::WindowFlags f)
         fishCombo->addItem(text, query.value(0).toString());
     }
 
+    fishCombo->lineEdit()->selectAll();
+
     connect(fishCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int index)
     {
         QString id = fishCombo->itemData(index).toString();
         lookupFish(id);
+        fishCombo->lineEdit()->selectAll();
     });
 
     m_resultList = new QListWidget(this);
     layout->addWidget(m_resultList);
+
+    // When the user double-clicks an item in the list, go to that spot.
+    connect(m_resultList, &QListWidget::itemDoubleClicked, [=](QListWidgetItem* item)
+    {
+        emit spotDoubleClicked(item->data(Qt::UserRole).toString());
+        close();
+    });
+
+    lookupFish(fishCombo->itemData(0).toString());
 }
 
 FishBrowser::~FishBrowser()
@@ -68,7 +82,7 @@ void FishBrowser::lookupFish(QString id)
         catchQuery.exec("SELECT bait.name, bait.level, fish_id, count"
             " FROM catches, bait"
             " WHERE catches.spot_id = " + spotId +
-            " AND catches.bait_id = bait.id");
+            " AND catches.bait_id = bait.id AND count > 0");
         while (catchQuery.next())
         {
             QString baitName = catchQuery.value(0).toString();
@@ -88,17 +102,18 @@ void FishBrowser::lookupFish(QString id)
         }
 
         // Now create the Catch objects and insert them in the correct order.
-        for (auto itr = fishCatches.begin(); itr != fishCatches.end(); ++itr)
+        for (auto itr = totalCatches.begin(); itr != totalCatches.end(); ++itr)
         {
-            if (itr.value() == 0)
-                continue;
+            //if (itr.value() == 0)
+            //    continue;
 
             Catch newCatch;
             QString baitText = itr.key();
             newCatch.text = spotName + " (" + baitText + "), " + zoneName;
-            newCatch.catches = itr.value();
+            newCatch.catches = fishCatches.contains(baitText) ? fishCatches[baitText] : 0;
             newCatch.total = totalCatches[baitText];
-            newCatch.percent = int(std::round(float(itr.value() * 100) / float(totalCatches[baitText])));
+            newCatch.percent = int(std::round(float(newCatch.catches * 100) / float(newCatch.total)));
+            newCatch.spotId = spotId;
 
             insertCatch(newCatch, catches);
         }
@@ -109,10 +124,21 @@ void FishBrowser::lookupFish(QString id)
     {
         QString text = QString::number(itr->percent) + "% (" + QString::number(itr->catches) +
             "/" + QString::number(itr->total) + ") - " + itr->text;
-        m_resultList->addItem(text);
+        QListWidgetItem* item = new QListWidgetItem(text);
+        item->setData(Qt::UserRole, itr->spotId);
+
+        if (itr->catches == 0)
+        {
+            QFont font = item->font();
+            font.setItalic(true);
+            item->setFont(font);
+            item->setTextColor(Qt::gray);
+        }
+
+        m_resultList->addItem(item);
     }
     
-    m_resultList->setMinimumWidth(m_resultList->sizeHintForColumn(0) + 5);
+    m_resultList->setMinimumWidth(m_resultList->sizeHintForColumn(0) + 10);
 }
 
 void FishBrowser::insertCatch(const Catch& newCatch, QList<Catch>& catches) const

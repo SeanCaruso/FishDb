@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <QSqlDatabase>
 #include <QStandardItemModel>
 
 class FishDbTreeModel : public QStandardItemModel
@@ -38,6 +37,8 @@ public:
 
     void setFreshwater(const QModelIndex& idx, bool isFreshwater);
 
+    QStandardItem* getSpotItem(QString spotId);
+
 signals:
     void spotChanged();
 
@@ -48,4 +49,7 @@ protected:
     QString getTableFromItem(const QStandardItem* item) const;
 
     bool exec(QString queryStr);
+
+private:
+    QHash<QString, QStandardItem*> m_spotItemMap; // Maps spot IDs to the item for each spot id
 };
